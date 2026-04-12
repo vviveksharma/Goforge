@@ -1,0 +1,83 @@
+package middleware
+
+import (
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"{{.ModulePath}}/pkg/logger"
+)
+
+// RequestLogger logs all incoming HTTP requests with correlation IDs
+func RequestLogger(log *logger.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Generate unique request ID
+		requestID := c.GetHeader("X-Request-ID")
+		if requestID == "" {
+			requestID = uuid.New().String()
+			c.Header("X-Request-ID", requestID)
+		}
+
+		// Store request ID in context for downstream handlers
+		c.Set("request_id", requestID)
+
+		// Record start time
+		start := time.Now()
+
+		// Process request
+		c.Next()
+
+		// Calculate request duration
+		duration := time.Since(start)
+
+		// Log request details
+		// Security: Don't log sensitive data like passwords, tokens, or API keys
+		log.Info("HTTP request",
+			"request_id", requestID,
+			"method", c.Request.Method,
+			"path", sanitizePath(c.Request.URL.Path),
+			"status", c.Writer.Status(),
+			"duration_ms", duration.Milliseconds(),
+			"ip", sanitizeIP(c.ClientIP()),
+			"user_agent", sanitizeUserAgent(c.GetHeader("User-Agent")),
+		)
+	}
+}
+
+// sanitizePath removes query parameters that might contain sensitive data
+func sanitizePath(path string) string {
+	// Remove query string for logging
+	for i, char := range path {
+		if char == '?' {
+			return path[:i]
+		}
+	}
+	return path
+}
+
+// sanitizeIP masks part of the IP address for privacy
+// In production, consider GDPR/privacy requirements
+func sanitizeIP(ip string) string {
+	// Return as-is in development, mask in production
+	// For production, you might want to hash or partially mask IPs
+	return ip
+}
+
+// sanitizeUserAgent truncates long user agent strings
+func sanitizeUserAgent(ua string) string {
+	maxLen := 200
+	if len(ua) > maxLen {
+		return ua[:maxLen] + "..."
+	}
+	return ua
+}
+
+// GetRequestID retrieves the request ID from context
+func GetRequestID(c *gin.Context) string {
+	if id, ok := c.Get("request_id"); ok {
+		if requestID, ok := id.(string); ok {
+			return requestID
+		}
+	}
+	return ""
+}

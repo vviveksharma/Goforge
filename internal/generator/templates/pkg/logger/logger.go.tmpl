@@ -105,6 +105,26 @@ func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
 	}
 }
 
+// Info logs a message at InfoLevel with key-value pairs
+func (l *Logger) Info(msg string, keysAndValues ...interface{}) {
+	l.SugaredLogger.Infow(msg, keysAndValues...)
+}
+
+// Warn logs a message at WarnLevel with key-value pairs
+func (l *Logger) Warn(msg string, keysAndValues ...interface{}) {
+	l.SugaredLogger.Warnw(msg, keysAndValues...)
+}
+
+// Error logs a message at ErrorLevel with key-value pairs
+func (l *Logger) Error(msg string, keysAndValues ...interface{}) {
+	l.SugaredLogger.Errorw(msg, keysAndValues...)
+}
+
+// Debug logs a message at DebugLevel with key-value pairs
+func (l *Logger) Debug(msg string, keysAndValues ...interface{}) {
+	l.SugaredLogger.Debugw(msg, keysAndValues...)
+}
+
 // Fatal logs a message at FatalLevel and exits
 func (l *Logger) Fatal(msg string, keysAndValues ...interface{}) {
 	l.SugaredLogger.Fatalw(msg, keysAndValues...)

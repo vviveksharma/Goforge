@@ -1,0 +1,168 @@
+# GoReleaser configuration
+# Documentation: https://goreleaser.com
+
+version: 2
+
+before:
+  hooks:
+    - go test -v ./...
+    - golangci-lint run
+    - go mod tidy
+
+builds:
+  - id: goforge
+    main: ./cmd/goforge
+    binary: goforge
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # Skip ARM64 for Windows (not common)
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/viveksharma/goforge/internal/cmd.version={{.Version}}
+      - -X github.com/viveksharma/goforge/internal/cmd.commit={{.Commit}}
+      - -X github.com/viveksharma/goforge/internal/cmd.date={{.Date}}
+
+archives:
+  - id: goforge
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "Performance improvements"
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: viveksharma
+    name: goforge
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+  header: |
+    ## GoForge {{.Version}}
+
+    Generate production-ready Go applications with security and observability built-in.
+  footer: |
+    ### Installation
+
+    **Homebrew (macOS/Linux):**
+    ```bash
+    brew install goforge
+    ```
+
+    **Go Install:**
+    ```bash
+    go install github.com/viveksharma/goforge/cmd/goforge@{{.Tag}}
+    ```
+
+    **Manual Download:**
+    Download the binary for your platform from the assets below.
+
+    ---
+
+    **Full Changelog**: https://github.com/viveksharma/goforge/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+# Homebrew tap configuration
+brews:
+  - repository:
+      owner: viveksharma
+      name: homebrew-tap
+    directory: Formula
+    homepage: https://github.com/viveksharma/goforge
+    description: Generate production-ready Go applications with security and observability built-in
+    license: MIT
+    dependencies:
+      - name: go
+        type: optional
+    install: |
+      bin.install "goforge"
+    test: |
+      system "#{bin}/goforge", "version"
+
+# Docker images
+dockers:
+  - image_templates:
+      - "viveksharma/goforge:{{ .Version }}-amd64"
+      - "viveksharma/goforge:latest-amd64"
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+
+  - image_templates:
+      - "viveksharma/goforge:{{ .Version }}-arm64"
+      - "viveksharma/goforge:latest-arm64"
+    use: buildx
+    goarch: arm64
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+
+docker_manifests:
+  - name_template: viveksharma/goforge:{{ .Version }}
+    image_templates:
+      - viveksharma/goforge:{{ .Version }}-amd64
+      - viveksharma/goforge:{{ .Version }}-arm64
+
+  - name_template: viveksharma/goforge:latest
+    image_templates:
+      - viveksharma/goforge:latest-amd64
+      - viveksharma/goforge:latest-arm64
+
+announce:
+  skip: false

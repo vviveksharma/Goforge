@@ -2,21 +2,31 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"{{.ModulePath}}/internal/config"
 	"{{.ModulePath}}/internal/server"
+	"{{.ModulePath}}/pkg/database"
 	"{{.ModulePath}}/pkg/logger"
+	"{{.ModulePath}}/pkg/migration"
 )
 
 func main() {
 	// Initialize logger
 	log := logger.New()
 	defer log.Sync()
+
+	// Check if migration command
+	if len(os.Args) > 1 && os.Args[1] == "migrate" {
+		runMigrations(log)
+		return
+	}
 
 	// Load configuration
 	cfg, err := config.Load()
@@ -60,4 +70,68 @@ func main() {
 	}
 
 	log.Info("Server exited gracefully")
+}
+
+func runMigrations(log *logger.Logger) {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: go run main.go migrate [up|down|version|force]")
+		os.Exit(1)
+	}
+
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("Failed to load configuration", "error", err)
+	}
+
+	// Connect to database
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal("Failed to connect to database", "error", err)
+	}
+	defer db.Close()
+
+	// Create migrator
+	migrator := migration.NewMigrator(db, "./migrations")
+
+	command := os.Args[2]
+	switch command {
+	case "up":
+		if err := migrator.Up(); err != nil {
+			log.Fatal("Migration up failed", "error", err)
+		}
+		log.Info("Migrations applied successfully")
+
+	case "down":
+		if err := migrator.Down(); err != nil {
+			log.Fatal("Migration down failed", "error", err)
+		}
+		log.Info("Migration reverted successfully")
+
+	case "version":
+		version, dirty, err := migrator.Version()
+		if err != nil {
+			log.Fatal("Failed to get migration version", "error", err)
+		}
+		fmt.Printf("Current version: %d (dirty: %v)\n", version, dirty)
+
+	case "force":
+		if len(os.Args) < 4 {
+			fmt.Println("Usage: go run main.go migrate force <version>")
+			os.Exit(1)
+		}
+		version, err := strconv.Atoi(os.Args[3])
+		if err != nil {
+			log.Fatal("Invalid version number", "error", err)
+		}
+		if err := migrator.Force(version); err != nil {
+			log.Fatal("Force migration failed", "error", err)
+		}
+		log.Info("Migration version forced", "version", version)
+
+	default:
+		fmt.Printf("Unknown migration command: %s\n", command)
+		fmt.Println("Available commands: up, down, version, force")
+		os.Exit(1)
+	}
 }

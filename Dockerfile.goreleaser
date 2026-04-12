@@ -1,0 +1,20 @@
+# Dockerfile for GoReleaser builds
+FROM alpine:3.19
+
+# Security: Install ca-certificates and create non-root user
+RUN apk --no-cache add ca-certificates tzdata && \
+    addgroup -g 1000 goforge && \
+    adduser -D -u 1000 -G goforge goforge
+
+# Copy the binary from the build context
+COPY goforge /usr/local/bin/goforge
+
+# Security: Change ownership
+RUN chown goforge:goforge /usr/local/bin/goforge
+
+# Security: Switch to non-root user
+USER goforge
+
+# Set entrypoint
+ENTRYPOINT ["/usr/local/bin/goforge"]
+CMD ["--help"]

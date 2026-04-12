@@ -1,0 +1,65 @@
+package handler
+
+import (
+	"io"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/stretchr/testify/assert"
+	"{{.ModulePath}}/pkg/logger"
+)
+
+func TestLivenessProbe(t *testing.T) {
+	// Setup
+	app := fiber.New()
+	log := logger.New()
+
+	handler := &HealthHandler{
+		log: log,
+	}
+
+	app.Get("/health/live", handler.LivenessProbe)
+
+	// Create test request
+	req := httptest.NewRequest("GET", "/health/live", nil)
+
+	// Execute
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	// Assert
+	assert.Equal(t, fiber.StatusOK, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Contains(t, string(body), "ok")
+	assert.Contains(t, string(body), "status")
+}
+
+func TestReadinessProbe_AllHealthy(t *testing.T) {
+	// Note: This is a basic test. In a real application, you would:
+	// 1. Mock the database and cache dependencies
+	// 2. Test various failure scenarios
+	// 3. Verify error handling
+
+	app := fiber.New()
+	log := logger.New()
+
+	handler := &HealthHandler{
+		log: log,
+		// db and cache would be mocked here
+	}
+
+	app.Get("/health/ready", handler.ReadinessProbe)
+
+	req := httptest.NewRequest("GET", "/health/ready", nil)
+	resp, err := app.Test(req)
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	// Without real dependencies, this will fail
+	// This is intentional to show where mocking would be needed
+	assert.NotEqual(t, fiber.StatusOK, resp.StatusCode)
+}

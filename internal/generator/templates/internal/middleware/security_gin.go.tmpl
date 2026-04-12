@@ -1,0 +1,92 @@
+package middleware
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+// SecurityHeaders adds security-related HTTP headers to all responses
+// These headers protect against common web vulnerabilities
+func SecurityHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Prevent browsers from MIME-sniffing
+		c.Header("X-Content-Type-Options", "nosniff")
+
+		// Prevent clickjacking attacks
+		c.Header("X-Frame-Options", "DENY")
+
+		// Enable XSS protection (legacy browsers)
+		c.Header("X-XSS-Protection", "1; mode=block")
+
+		// Content Security Policy - restrict resource loading
+		// Adjust this based on your application needs
+		c.Header("Content-Security-Policy", "default-src 'self'")
+
+		// Referrer Policy - control referrer information
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		// Permissions Policy - control browser features
+		c.Header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+
+		// HSTS - Force HTTPS (only enable in production with HTTPS)
+		// Uncomment when you have HTTPS configured
+		// c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+
+		c.Next()
+	}
+}
+
+// CORS returns a CORS middleware with secure defaults
+// Customize allowed origins, methods, and headers as needed
+func CORS() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Security: Never use "*" in production with credentials
+		// Set specific allowed origins instead
+		origin := c.GetHeader("Origin")
+
+		// Example: Validate origin against whitelist
+		allowedOrigins := map[string]bool{
+			"http://localhost:3000": true,
+			"http://localhost:8080": true,
+			// Add your production domains here
+		}
+
+		if allowedOrigins[origin] {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
+		c.Header("Access-Control-Max-Age", "86400") // 24 hours
+
+		// Handle preflight requests
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// BodySizeLimit middleware limits the size of request bodies
+// This helps prevent DoS attacks
+func BodySizeLimit(maxBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+		c.Next()
+	}
+}
+
+// RateLimitConfig holds rate limiting configuration
+type RateLimitConfig struct {
+	Max        int    // Maximum number of requests
+	Expiration int    // Time window in seconds
+	KeyPrefix  string // Redis key prefix
+}
+
+// Note: Rate limiting implementation would go here
+// For production, use Redis-backed rate limiting
+// Example: github.com/gin-contrib/limiter

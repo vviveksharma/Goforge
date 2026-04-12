@@ -1,6 +1,6 @@
 # {{.ProjectName}}
 
-A production-ready Go REST API built with security and observability best practices.
+A production-ready Go REST API built with {{if eq .ServerType "gin"}}Gin{{else}}Fiber{{end}}, featuring security and observability best practices.
 
 ## 🚀 Quick Start
 
@@ -20,8 +20,11 @@ make down
 
 ## 📋 Features
 
-- ✅ **Fiber HTTP Server** - High-performance web framework
+- ✅ **{{if eq .ServerType "gin"}}Gin{{else}}Fiber{{end}} HTTP Server** - {{if eq .ServerType "gin"}}Feature-rich, battle-tested web framework{{else}}High-performance web framework{{end}}
 - ✅ **Health Checks** - Kubernetes-ready liveness and readiness probes
+- ✅ **Prometheus Metrics** - Built-in /metrics endpoint for monitoring
+- ✅ **Swagger/OpenAPI** - Auto-generated API documentation at /swagger
+- ✅ **Database Migrations** - Version-controlled schema changes with golang-migrate
 - ✅ **Structured Logging** - Request correlation with unique IDs
 - ✅ **Graceful Shutdown** - Safe termination with connection draining
 - ✅ **Security Headers** - HSTS, CSP, X-Frame-Options, and more
@@ -38,12 +41,15 @@ make down
 ├── internal/
 │   ├── config/           # Configuration management
 │   ├── handler/          # HTTP handlers
-│   ├── middleware/       # HTTP middleware
+│   ├── middleware/       # HTTP middleware (security, logging, metrics)
 │   └── server/           # Server setup
 ├── pkg/
 │   ├── logger/           # Structured logging
 │   ├── database/         # Database connections
-│   └── cache/            # Redis cache client
+│   ├── cache/            # Redis cache client
+│   └── migration/        # Migration runner
+├── migrations/           # SQL migration files (up/down)
+├── docs/                 # Swagger/OpenAPI docs
 ├── deployments/          # Docker and deployment configs
 ├── docker-compose.yml    # Local development stack
 ├── Makefile              # Common commands
@@ -81,6 +87,18 @@ Returns 200 if the application is running.
 GET /health/ready
 ```
 Returns 200 if the application is ready to serve traffic (database and cache connected).
+
+### Metrics
+```bash
+GET /metrics
+```
+Prometheus metrics including request count, duration, and in-flight requests.
+
+### API Documentation
+```bash
+GET /swagger/index.html
+```
+Interactive Swagger/OpenAPI documentation for all endpoints.
 
 ## 🔒 Security Features
 
@@ -154,22 +172,79 @@ source ~/.bashrc   # for bash on Linux
 ## 🛠️ Available Make Commands
 
 ```bash
-make up          # Start all services
-make down        # Stop all services
-make logs        # View logs
-make build       # Build the Go binary
-make test        # Run tests
-make fmt         # Format code
-make lint        # Run golangci-lint
-make clean       # Clean up
+make up              # Start all services
+make down            # Stop all services
+make logs            # View logs
+make build           # Build the Go binary
+make test            # Run tests
+make fmt             # Format code
+make lint            # Run golangci-lint
+make clean           # Clean up
+make swagger         # Generate Swagger docs
+make migrate-up      # Run all pending migrations
+make migrate-down    # Revert last migration
+make migrate-create  # Create migration (NAME=migration_name)
+make migrate-version # Show current migration version
+make migrate-force   # Force migration version (VERSION=1)
 ```
 
 ## 📝 Adding New Endpoints
 
 1. Create handler in `internal/handler/`
-2. Register route in `internal/server/server.go`
-3. Add tests
-4. Document in this README
+2. Add Swagger annotations to your handler function
+3. Register route in `internal/server/server.go`
+4. Run `make swagger` to regenerate docs
+5. Add tests
+6. Document in this README
+
+**Example with Swagger annotations:**
+```go
+// GetUser godoc
+// @Summary      Get user by ID
+// @Description  Retrieve user details
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "User ID"
+// @Success      200  {object}  map[string]interface{}
+// @Router       /api/v1/users/{id} [get]
+{{if eq .ServerType "gin"}}func (h *Handler) GetUser(c *gin.Context) {
+	// Implementation
+}{{else}}func (h *Handler) GetUser(c *fiber.Ctx) error {
+	// Implementation
+	return nil
+}{{end}}
+```
+
+## 🗄️ Database Migrations
+
+### Create a new migration
+```bash
+make migrate-create NAME=add_users_table
+# Creates migrations/TIMESTAMP_add_users_table.up.sql
+#     and migrations/TIMESTAMP_add_users_table.down.sql
+```
+
+### Run migrations
+```bash
+make migrate-up      # Apply all pending migrations
+make migrate-version # Check current version
+make migrate-down    # Rollback last migration
+```
+
+### Migration commands
+```bash
+# Via Makefile
+make migrate-up
+make migrate-down
+make migrate-version
+
+# Or directly
+go run cmd/api/main.go migrate up
+go run cmd/api/main.go migrate down
+go run cmd/api/main.go migrate version
+go run cmd/api/main.go migrate force 1
+```
 
 ## 🐛 Troubleshooting
 

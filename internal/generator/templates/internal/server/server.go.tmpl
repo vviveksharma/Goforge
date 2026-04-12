@@ -6,12 +6,17 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	fiberSwagger "github.com/swaggo/fiber-swagger"
 	"{{.ModulePath}}/internal/config"
 	"{{.ModulePath}}/internal/handler"
 	"{{.ModulePath}}/internal/middleware"
 	"{{.ModulePath}}/pkg/cache"
 	"{{.ModulePath}}/pkg/database"
 	"{{.ModulePath}}/pkg/logger"
+
+	_ "{{.ModulePath}}/docs" // Import generated docs
 )
 
 type Server struct {
@@ -86,6 +91,9 @@ func (s *Server) setupMiddleware() {
 	// Security: Recovery middleware first to catch panics
 	s.app.Use(middleware.Recovery(s.log))
 
+	// Metrics collection
+	s.app.Use(middleware.Metrics())
+
 	// Request logging
 	s.app.Use(middleware.RequestLogger(s.log))
 
@@ -97,6 +105,12 @@ func (s *Server) setupMiddleware() {
 }
 
 func (s *Server) setupRoutes() {
+	// Prometheus metrics endpoint
+	s.app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
+
+	// Swagger documentation
+	s.app.Get("/swagger/*", fiberSwagger.WrapHandler)
+
 	// Health check endpoints
 	health := handler.NewHealthHandler(s.db, s.cache, s.log)
 

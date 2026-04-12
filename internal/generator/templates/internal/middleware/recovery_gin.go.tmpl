@@ -1,0 +1,47 @@
+package middleware
+
+import (
+	"fmt"
+	"net/http"
+	"runtime/debug"
+
+	"github.com/gin-gonic/gin"
+	"{{.ModulePath}}/pkg/logger"
+)
+
+// Recovery recovers from panics and returns a 500 error
+// This prevents the server from crashing on panic
+func Recovery(log *logger.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if r := recover(); r != nil {
+				// Get request ID for correlation
+				requestID := GetRequestID(c)
+
+				// Get stack trace
+				stack := string(debug.Stack())
+
+				// Log the panic with full context
+				log.Error("Panic recovered",
+					"request_id", requestID,
+					"method", c.Request.Method,
+					"path", c.Request.URL.Path,
+					"panic", fmt.Sprintf("%v", r),
+					"stack", stack,
+				)
+
+				// Security: Don't expose internal error details to clients
+				// Return generic error message
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error":      "Internal server error",
+					"request_id": requestID,
+				})
+
+				// Abort the request
+				c.Abort()
+			}
+		}()
+
+		c.Next()
+	}
+}

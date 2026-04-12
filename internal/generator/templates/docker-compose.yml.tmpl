@@ -22,7 +22,7 @@ services:
     user: postgres
 
   redis:
-    image: redis:7-alpine
+    image: redis:8.6.2-trixie
     container_name: {{.ProjectName}}_redis
     restart: unless-stopped
     ports:

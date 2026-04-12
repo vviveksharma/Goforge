@@ -1,4 +1,4 @@
-.PHONY: help up down logs build run test fmt lint clean
+.PHONY: help up down logs build run test fmt lint clean migrate-up migrate-down migrate-create migrate-version migrate-force swagger
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -42,3 +42,38 @@ db-connect: ## Connect to PostgreSQL database
 
 redis-cli: ## Connect to Redis CLI
 	docker-compose exec redis redis-cli
+
+migrate-up: ## Run all pending migrations
+	@echo "Running migrations..."
+	@go run cmd/api/main.go migrate up
+
+migrate-down: ## Revert the last migration
+	@echo "Reverting last migration..."
+	@go run cmd/api/main.go migrate down
+
+migrate-create: ## Create a new migration file (usage: make migrate-create NAME=migration_name)
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: NAME is required. Usage: make migrate-create NAME=migration_name"; \
+		exit 1; \
+	fi
+	@timestamp=$$(date +%s); \
+	touch migrations/$${timestamp}_$(NAME).up.sql; \
+	touch migrations/$${timestamp}_$(NAME).down.sql; \
+	echo "Created migrations/$${timestamp}_$(NAME).up.sql"; \
+	echo "Created migrations/$${timestamp}_$(NAME).down.sql"
+
+migrate-version: ## Show current migration version
+	@go run cmd/api/main.go migrate version
+
+migrate-force: ## Force migration to specific version (usage: make migrate-force VERSION=1)
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION is required. Usage: make migrate-force VERSION=1"; \
+		exit 1; \
+	fi
+	@go run cmd/api/main.go migrate force $(VERSION)
+
+swagger: ## Generate Swagger documentation
+	@echo "Generating Swagger docs..."
+	@which swag > /dev/null || go install github.com/swaggo/swag/cmd/swag@latest
+	@swag init -g cmd/api/main.go -o docs
+	@echo "✅ Swagger docs generated at /swagger/index.html"
