@@ -14,7 +14,17 @@ go install github.com/viveksharma/goforge@latest
 
 Download pre-built binaries from the [Releases](https://github.com/viveksharma/goforge/releases) page.
 
-### Option 3: Build from Source
+### Option 3: Install from Latest Main
+
+```bash
+git clone https://github.com/viveksharma/goforge.git
+cd goforge
+make install
+```
+
+This installs the latest development version to `$GOPATH/bin` (usually `~/go/bin`).
+
+### Option 4: Build from Source
 
 ```bash
 git clone https://github.com/viveksharma/goforge.git
