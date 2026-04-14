@@ -108,7 +108,7 @@ release:
     **Full Changelog**: https://github.com/viveksharma/goforge/compare/{{ .PreviousTag }}...{{ .Tag }}
 
 # Homebrew tap configuration
-homebrew:
+brews:
   - repository:
       owner: viveksharma
       name: homebrew-tap
