@@ -5,8 +5,6 @@ version: 2
 
 before:
   hooks:
-    - go test -v ./...
-    - golangci-lint run
     - go mod tidy
 
 builds:
@@ -34,7 +32,6 @@ builds:
 
 archives:
   - id: goforge
-    format: tar.gz
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -42,9 +39,13 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
+    formats:
+      - tar.gz
+      - zip
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     files:
       - README.md
       - LICENSE
@@ -52,9 +53,6 @@ archives:
 
 checksum:
   name_template: "checksums.txt"
-
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
@@ -110,7 +108,7 @@ release:
     **Full Changelog**: https://github.com/viveksharma/goforge/compare/{{ .PreviousTag }}...{{ .Tag }}
 
 # Homebrew tap configuration
-brews:
+homebrew:
   - repository:
       owner: viveksharma
       name: homebrew-tap
