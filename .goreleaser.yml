@@ -106,24 +106,24 @@ release:
 
     **Full Changelog**: https://github.com/vviveksharma/Goforge/compare/{{ .PreviousTag }}...{{ .Tag }}
 
-# Homebrew tap configuration
-brews:
-  - ids:
-      - goforge
-    repository:
-      owner: vviveksharma
-      name: homebrew-tap
-    directory: Formula
-    homepage: https://github.com/vviveksharma/Goforge
-    description: Generate production-ready Go applications with security and observability built-in
-    license: MIT
-    dependencies:
-      - name: go
-        type: optional
-    install: |
-      bin.install "goforge"
-    test: |
-      system "#{bin}/goforge", "version"
+# Homebrew tap configuration - disabled (create vviveksharma/homebrew-tap repo to enable)
+# brews:
+#   - ids:
+#       - goforge
+#     repository:
+#       owner: vviveksharma
+#       name: homebrew-tap
+#     directory: Formula
+#     homepage: https://github.com/vviveksharma/Goforge
+#     description: Generate production-ready Go applications with security and observability built-in
+#     license: MIT
+#     dependencies:
+#       - name: go
+#         type: optional
+#     install: |
+#       bin.install "goforge"
+#     test: |
+#       system "#{bin}/goforge", "version"
 
 # Docker images - disabled for now, requires QEMU/buildx setup in CI
 # dockers:
