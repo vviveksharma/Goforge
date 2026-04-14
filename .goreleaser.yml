@@ -125,43 +125,43 @@ brews:
     test: |
       system "#{bin}/goforge", "version"
 
-# Docker images
-dockers:
-  - image_templates:
-      - "viveksharma/goforge:{{ .Version }}-amd64"
-      - "viveksharma/goforge:latest-amd64"
-    use: buildx
-    dockerfile: Dockerfile.goreleaser
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-
-  - image_templates:
-      - "viveksharma/goforge:{{ .Version }}-arm64"
-      - "viveksharma/goforge:latest-arm64"
-    use: buildx
-    goarch: arm64
-    dockerfile: Dockerfile.goreleaser
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-
-docker_manifests:
-  - name_template: viveksharma/goforge:{{ .Version }}
-    image_templates:
-      - viveksharma/goforge:{{ .Version }}-amd64
-      - viveksharma/goforge:{{ .Version }}-arm64
-
-  - name_template: viveksharma/goforge:latest
-    image_templates:
-      - viveksharma/goforge:latest-amd64
-      - viveksharma/goforge:latest-arm64
+# Docker images - disabled for now, requires QEMU/buildx setup in CI
+# dockers:
+#   - image_templates:
+#       - "viveksharma/goforge:{{ .Version }}-amd64"
+#       - "viveksharma/goforge:latest-amd64"
+#     use: buildx
+#     dockerfile: Dockerfile.goreleaser
+#     build_flag_templates:
+#       - "--platform=linux/amd64"
+#       - "--label=org.opencontainers.image.created={{.Date}}"
+#       - "--label=org.opencontainers.image.title={{.ProjectName}}"
+#       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+#       - "--label=org.opencontainers.image.version={{.Version}}"
+# 
+#   - image_templates:
+#       - "viveksharma/goforge:{{ .Version }}-arm64"
+#       - "viveksharma/goforge:latest-arm64"
+#     use: buildx
+#     goarch: arm64
+#     dockerfile: Dockerfile.goreleaser
+#     build_flag_templates:
+#       - "--platform=linux/arm64"
+#       - "--label=org.opencontainers.image.created={{.Date}}"
+#       - "--label=org.opencontainers.image.title={{.ProjectName}}"
+#       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+#       - "--label=org.opencontainers.image.version={{.Version}}"
+# 
+# docker_manifests:
+#   - name_template: viveksharma/goforge:{{ .Version }}
+#     image_templates:
+#       - viveksharma/goforge:{{ .Version }}-amd64
+#       - viveksharma/goforge:{{ .Version }}-arm64
+# 
+#   - name_template: viveksharma/goforge:latest
+#     image_templates:
+#       - viveksharma/goforge:latest-amd64
+#       - viveksharma/goforge:latest-arm64
 
 announce:
   skip: false
